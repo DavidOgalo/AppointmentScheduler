@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.endpoints import auth
-from app.core.config import settings
+from app.core.config.config import get_settings
+
+settings = get_settings()
 
 app = FastAPI(
     title="Healthcare Appointment Scheduler",

@@ -4,12 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from app.core import security
-from app.core.config import settings
+from app.core.security.security import create_access_token
+from app.core.config.config import get_settings
 from app.db.session import get_db
 from app.schemas.auth import Token, UserCreate, UserInDB
 from app.services.user_service import UserService
 
+settings = get_settings()
 router = APIRouter()
 
 @router.post("/login", response_model=Token)
@@ -39,7 +40,7 @@ def login(
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
-        "access_token": security.create_access_token(
+        "access_token": create_access_token(
             user.id, user.role, expires_delta=access_token_expires
         ),
         "token_type": "bearer",

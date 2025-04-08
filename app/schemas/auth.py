@@ -4,8 +4,8 @@ from datetime import datetime
 from uuid import UUID
 
 class UserBase(BaseModel):
+    username: str = Field(..., min_length=3, max_length=100)
     email: EmailStr
-    full_name: str = Field(..., min_length=1, max_length=100)
     role: str = Field(..., pattern="^(admin|doctor|staff|patient)$")
 
 class UserCreate(UserBase):
@@ -24,20 +24,21 @@ class UserCreate(UserBase):
         return v
 
 class UserUpdate(BaseModel):
+    username: Optional[str] = Field(None, min_length=3, max_length=100)
     email: Optional[EmailStr] = None
-    full_name: Optional[str] = Field(None, min_length=1, max_length=100)
     password: Optional[str] = Field(None, min_length=8, max_length=100)
     is_active: Optional[bool] = None
 
 class UserInDB(UserBase):
     id: UUID
     is_active: bool
-    is_superuser: bool
+    last_login: Optional[datetime]
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class Token(BaseModel):
     access_token: str
