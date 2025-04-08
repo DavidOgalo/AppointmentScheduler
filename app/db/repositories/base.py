@@ -11,6 +11,9 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def __init__(self, model: Type[ModelType]):
+        """
+        Base repository class with default CRUD operations
+        """
         self.model = model
 
     def get(self, db: Session, id: Any) -> Optional[ModelType]:
