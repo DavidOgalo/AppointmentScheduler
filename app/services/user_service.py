@@ -1,11 +1,13 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from uuid import UUID
 from datetime import datetime
+from uuid import UUID
 
 from app.core.security.security import get_password_hash, verify_password
 from app.db.models.user import User
 from app.schemas.auth import UserCreate, UserUpdate
+from app.services.patient_service import PatientService
+from app.schemas.patient import PatientCreate
 
 class UserService:
     def __init__(self, db: Session):
@@ -29,11 +31,34 @@ class UserService:
         return user
 
     def create(self, obj_in: UserCreate) -> User:
+        # Create patient record if role is patient
+        patient_id = None
+        if obj_in.role == "patient":
+            patient_service = PatientService(self.db)
+            # Split full_name into first and last name
+            name_parts = obj_in.full_name.split()
+            first_name = name_parts[0]
+            last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+            
+            patient = patient_service.create(
+                PatientCreate(
+                    first_name=first_name,
+                    last_name=last_name,
+                    date_of_birth=datetime.now().date(),  # Default to today, should be provided in real app
+                    email=obj_in.email,
+                    phone="",  # Should be provided in real app
+                    address="",  # Should be provided in real app
+                )
+            )
+            patient_id = patient.id
+
         db_obj = User(
             username=obj_in.username,
             email=obj_in.email,
+            full_name=obj_in.full_name,
             password_hash=get_password_hash(obj_in.password),
             role=obj_in.role,
+            patient_id=patient_id,
             is_active=True
         )
         self.db.add(db_obj)

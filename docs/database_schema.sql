@@ -65,10 +65,12 @@ CREATE TABLE medical_records (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create the users table with the correct schema
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     username VARCHAR(100) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'doctor', 'staff', 'patient')),
     patient_id UUID REFERENCES patients(id) ON DELETE SET NULL,
@@ -105,6 +107,7 @@ CREATE TABLE audit_logs (
 );
 
 -- Create indexes for performance
+CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_patients_email ON patients(email);
 CREATE INDEX idx_doctors_specialization ON doctors(specialization);
 CREATE INDEX idx_appointments_patient_id ON appointments(patient_id);
