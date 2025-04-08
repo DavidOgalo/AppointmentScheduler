@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings
 from pydantic import PostgresDsn, validator
 import secrets
 from functools import lru_cache
+import os
 
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
@@ -11,7 +12,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     ENVIRONMENT: str = "development"
     
-    POSTGRES_SERVER: str = "db"
+    # Use environment variable with fallback
+    POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost:5434")
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "se2025"
     POSTGRES_DB: str = "appointment_db"
