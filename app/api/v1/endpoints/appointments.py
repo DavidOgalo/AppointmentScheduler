@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.appointment import AppointmentCreate, AppointmentInDB, AppointmentUpdate
@@ -68,14 +68,14 @@ def update_appointment_status(
     *,
     db: Session = Depends(get_db),
     appointment_id: UUID,
-    status: str,
+    status_update: str = Body(..., description="New status for the appointment"),
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """
     Update the status of a specific appointment.
     """
     appointment_service = AppointmentService(db)
-    appointment = appointment_service.update_appointment_status(appointment_id=appointment_id, status=status, user=current_user)
+    appointment = appointment_service.update_appointment_status(appointment_id=appointment_id, status=status_update, user=current_user)
     if not appointment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -39,6 +39,10 @@ class AppointmentService:
         return self.db.query(Appointment).filter(Appointment.id == appointment_id).first()
 
     def update_appointment_status(self, appointment_id: UUID, status: str, user: User) -> Optional[Appointment]:
+        # Ensure the user is authorized to update appointment status
+        if user.role not in ["doctor", "staff"]:
+            raise ValueError("User is not authorized to update appointment status")
+
         appointment = self.get_appointment_by_id(appointment_id=appointment_id)
         if not appointment:
             return None

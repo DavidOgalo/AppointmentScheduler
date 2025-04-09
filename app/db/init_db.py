@@ -7,6 +7,9 @@ from app.db.models.user import User
 from app.db.models.patient import Patient
 from app.db.models.doctor import Doctor
 from app.db.models.appointment import Appointment
+from app.db.models.staff import Staff
+from app.db.models.medical_record import MedicalRecord
+from app.db.models.doctor_schedule import DoctorSchedule
 
 def init_db() -> None:
     # Create all tables
@@ -26,6 +29,7 @@ def init_db() -> None:
             admin_user = User(
                 email="admin@example.com",
                 username="admin",
+                full_name="System Administrator",
                 password_hash=get_password_hash("Admin@123"),
                 role="admin",
                 is_active=True

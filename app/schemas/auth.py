@@ -4,25 +4,18 @@ from datetime import datetime
 from uuid import UUID
 
 class UserBase(BaseModel):
-    username: str = Field(..., min_length=3, max_length=100)
-    email: EmailStr
-    role: str = Field(..., pattern="^(admin|doctor|staff|patient)$")
-    full_name: str = Field(..., min_length=1, max_length=255)
+    email: Optional[EmailStr] = None
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    is_active: Optional[bool] = True
+    role: Optional[str] = None
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=8, max_length=100)
-    
-    @validator('password')
-    def validate_password(cls, v):
-        if not any(c.isupper() for c in v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not any(c.islower() for c in v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not any(c.isdigit() for c in v):
-            raise ValueError('Password must contain at least one number')
-        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in v):
-            raise ValueError('Password must contain at least one special character')
-        return v
+    email: EmailStr
+    password: str
+    username: str
+    full_name: str
+    role: str  # admin, doctor, staff, patient
 
 class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=100)
@@ -33,14 +26,22 @@ class UserUpdate(BaseModel):
 
 class UserInDB(UserBase):
     id: UUID
-    is_active: bool
-    last_login: Optional[datetime]
+    password_hash: str
     created_at: datetime
     updated_at: datetime
+    last_login: Optional[datetime] = None
 
-    model_config = {
-        "from_attributes": True
-    }
+    class Config:
+        from_attributes = True
+
+class UserResponse(UserBase):
+    id: UUID
+    created_at: datetime
+    updated_at: datetime
+    last_login: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
 
 class Token(BaseModel):
     access_token: str
@@ -48,6 +49,5 @@ class Token(BaseModel):
     expires_in: int
 
 class TokenPayload(BaseModel):
-    sub: UUID
-    exp: datetime
+    sub: str
     role: str 

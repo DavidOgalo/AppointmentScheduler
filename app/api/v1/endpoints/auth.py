@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.security.security import create_access_token
 from app.core.config.config import get_settings
 from app.db.session import get_db
-from app.schemas.auth import Token, UserCreate, UserInDB
+from app.schemas.auth import Token, UserCreate, UserResponse
 from app.services.user_service import UserService
 
 settings = get_settings()
@@ -47,7 +47,7 @@ def login(
         "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
     }
 
-@router.post("/register", response_model=UserInDB)
+@router.post("/register", response_model=UserResponse)
 def register(
     *,
     db: Session = Depends(get_db),
@@ -57,11 +57,27 @@ def register(
     Create new user.
     """
     user_service = UserService(db)
-    user = user_service.get_by_email(email=user_in.email)
-    if user:
+    
+    # Check if user with this email exists
+    if user_service.get_by_email(email=user_in.email):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The user with this email already exists in the system.",
+            status_code=400,
+            detail="A user with this email already exists.",
         )
+    
+    # Check if user with this username exists
+    if user_service.get_by_username(username=user_in.username):
+        raise HTTPException(
+            status_code=400,
+            detail="A user with this username already exists.",
+        )
+    
+    # Validate role
+    if user_in.role not in ["admin", "doctor", "staff", "patient"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid role. Must be one of: admin, doctor, staff, patient",
+        )
+    
     user = user_service.create(obj_in=user_in)
     return user 

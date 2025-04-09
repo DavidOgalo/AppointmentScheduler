@@ -1,33 +1,30 @@
-from pydantic import BaseModel, EmailStr
 from typing import Optional
-from uuid import UUID
+from datetime import datetime
+from pydantic import BaseModel, UUID4
 
 class DoctorBase(BaseModel):
-    first_name: str
-    last_name: str
     specialization: str
-    email: EmailStr
-    phone: str
     license_number: str
+    years_of_experience: Optional[int] = None
+    education: Optional[str] = None
+    certifications: Optional[str] = None
 
 class DoctorCreate(DoctorBase):
-    pass
+    id: UUID4
+    user_id: UUID4
 
-class DoctorUpdate(DoctorBase):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
+class DoctorUpdate(BaseModel):
     specialization: Optional[str] = None
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
     license_number: Optional[str] = None
-    is_active: Optional[bool] = None
+    years_of_experience: Optional[int] = None
+    education: Optional[str] = None
+    certifications: Optional[str] = None
 
 class DoctorInDB(DoctorBase):
-    id: UUID
-    is_active: bool
-    created_at: str
-    updated_at: str
+    id: UUID4
+    user_id: UUID4
+    created_at: datetime
+    updated_at: datetime
 
-    model_config = {
-        "from_attributes": True
-    } 
+    class Config:
+        from_attributes = True 

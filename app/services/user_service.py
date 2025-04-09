@@ -5,6 +5,7 @@ from uuid import UUID
 
 from app.core.security.security import get_password_hash, verify_password
 from app.db.models.user import User
+from app.db.models.staff import Staff
 from app.schemas.auth import UserCreate, UserUpdate
 from app.services.patient_service import PatientService
 from app.services.doctor_service import DoctorService
@@ -38,10 +39,19 @@ class UserService:
         first_name = name_parts[0]
         last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
 
-        # Create patient or doctor record based on role
-        patient_id = None
-        doctor_id = None
+        # Create user object first
+        db_obj = User(
+            username=obj_in.username,
+            email=obj_in.email,
+            full_name=obj_in.full_name,
+            password_hash=get_password_hash(obj_in.password),
+            role=obj_in.role,
+            is_active=True
+        )
+        self.db.add(db_obj)
+        self.db.flush()  # This assigns the ID to db_obj without committing
 
+        # Create role-specific records based on role
         if obj_in.role == "patient":
             patient_service = PatientService(self.db)
             patient = patient_service.create(
@@ -54,7 +64,7 @@ class UserService:
                     address="",  # Should be provided in real app
                 )
             )
-            patient_id = patient.id
+            db_obj.patient_id = patient.id
         elif obj_in.role == "doctor":
             doctor_service = DoctorService(self.db)
             doctor = doctor_service.create(
@@ -67,19 +77,16 @@ class UserService:
                     license_number="TBD",  # Should be provided in real app
                 )
             )
-            doctor_id = doctor.id
+            db_obj.doctor_id = doctor.id
+        elif obj_in.role == "staff":
+            staff = Staff(
+                user_id=db_obj.id,
+                department="General",  # Should be provided in real app
+                position="Staff",  # Should be provided in real app
+                status="unverified"
+            )
+            self.db.add(staff)
 
-        db_obj = User(
-            username=obj_in.username,
-            email=obj_in.email,
-            full_name=obj_in.full_name,
-            password_hash=get_password_hash(obj_in.password),
-            role=obj_in.role,
-            patient_id=patient_id,
-            doctor_id=doctor_id,
-            is_active=True
-        )
-        self.db.add(db_obj)
         self.db.commit()
         self.db.refresh(db_obj)
         return db_obj
