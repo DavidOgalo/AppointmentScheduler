@@ -17,6 +17,9 @@ class Patient(Base):
     phone = Column(String(20), nullable=False)
     address = Column(Text, nullable=False)
     insurance_info = Column(JSONB)
+    blood_group = Column(String(10))
+    allergies = Column(Text)
+    medical_history = Column(Text)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 

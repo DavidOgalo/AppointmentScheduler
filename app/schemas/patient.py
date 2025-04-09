@@ -11,6 +11,9 @@ class PatientBase(BaseModel):
     phone: str
     address: str
     insurance_info: Optional[dict] = None
+    blood_group: Optional[str] = None
+    allergies: Optional[str] = None
+    medical_history: Optional[str] = None
 
 class PatientCreate(PatientBase):
     pass
@@ -23,6 +26,9 @@ class PatientUpdate(PatientBase):
     phone: Optional[str] = None
     address: Optional[str] = None
     insurance_info: Optional[dict] = None
+    blood_group: Optional[str] = None
+    allergies: Optional[str] = None
+    medical_history: Optional[str] = None
 
 class PatientInDB(PatientBase):
     id: UUID

@@ -9,9 +9,9 @@ from app.db.base_class import Base
 class Appointment(Base):
     __tablename__ = "appointments"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    patient_id = Column(UUID(as_uuid=True), ForeignKey("patients.id"), nullable=False)
-    doctor_id = Column(UUID(as_uuid=True), ForeignKey("doctors.id"), nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid.uuid4)
+    patient_id = Column(UUID, ForeignKey("patients.id"), nullable=False)
+    doctor_id = Column(UUID, ForeignKey("doctors.id"), nullable=False)
     start_time = Column(DateTime(timezone=True), nullable=False)
     end_time = Column(DateTime(timezone=True), nullable=False)
     status = Column(String(20), nullable=False)  # scheduled, confirmed, completed, cancelled

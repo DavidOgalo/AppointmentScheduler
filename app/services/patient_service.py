@@ -15,7 +15,10 @@ class PatientService:
             email=obj_in.email,
             phone=obj_in.phone,
             address=obj_in.address,
-            insurance_info=obj_in.insurance_info
+            insurance_info=obj_in.insurance_info,
+            blood_group=obj_in.blood_group,
+            allergies=obj_in.allergies,
+            medical_history=obj_in.medical_history
         )
         self.db.add(db_obj)
         self.db.commit()
