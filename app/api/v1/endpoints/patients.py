@@ -2,9 +2,9 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.security.security import get_current_user
+from app.core.security import get_current_user
 from app.db.session import get_db
-from app.schemas.patient import PatientCreate, PatientInDB
+from app.schemas.patient import PatientCreate, PatientInDB, PatientUpdate, PatientResponse
 from app.services.patient_service import PatientService
 from app.db.models.user import User
 

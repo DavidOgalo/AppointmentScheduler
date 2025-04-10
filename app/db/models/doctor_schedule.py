@@ -1,15 +1,14 @@
-from sqlalchemy import Column, Integer, Time, Boolean, ForeignKey, UniqueConstraint, CheckConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Integer, Time, Boolean, ForeignKey, UniqueConstraint, CheckConstraint, String
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import time
 import uuid
 from app.db.base_class import Base
 
 class DoctorSchedule(Base):
     __tablename__ = "doctor_schedules"
 
-    id = Column(UUID, primary_key=True, index=True, default=uuid.uuid4)
-    doctor_id = Column(UUID, ForeignKey("doctors.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    doctor_id = Column(String(36), ForeignKey("doctors.id", ondelete="CASCADE"), nullable=False)
     day_of_week = Column(Integer, nullable=False)  # 0=Monday, 6=Sunday
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
@@ -26,4 +25,4 @@ class DoctorSchedule(Base):
     )
 
     def __repr__(self):
-        return f"<DoctorSchedule {self.doctor_id} - Day {self.day_of_week}>" 
+        return f"<DoctorSchedule(doctor_id={self.doctor_id}, day={self.day_of_week}, time={self.start_time}-{self.end_time})>" 

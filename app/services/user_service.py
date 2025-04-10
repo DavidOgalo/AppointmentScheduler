@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from uuid import UUID
 
-from app.core.security.security import get_password_hash, verify_password
+from app.core.security import get_password_hash, verify_password
 from app.db.models.user import User
+from app.db.models.patient import Patient
+from app.db.models.doctor import Doctor
 from app.db.models.staff import Staff
 from app.schemas.auth import UserCreate, UserUpdate
-from app.services.patient_service import PatientService
-from app.services.doctor_service import DoctorService
 from app.schemas.patient import PatientCreate
 from app.schemas.doctor import DoctorCreate
 
@@ -34,59 +34,80 @@ class UserService:
         return user
 
     def create(self, obj_in: UserCreate) -> User:
-        # Split full name into first and last name
-        name_parts = obj_in.full_name.split()
-        first_name = name_parts[0]
-        last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
-
-        # Create user object first
-        db_obj = User(
-            username=obj_in.username,
-            email=obj_in.email,
-            full_name=obj_in.full_name,
-            password_hash=get_password_hash(obj_in.password),
-            role=obj_in.role,
-            is_active=True
-        )
-        self.db.add(db_obj)
-        self.db.flush()  # This assigns the ID to db_obj without committing
-
-        # Create role-specific records based on role
+        # Create role-specific profile first
         if obj_in.role == "patient":
-            patient_service = PatientService(self.db)
-            patient = patient_service.create(
-                PatientCreate(
-                    first_name=first_name,
-                    last_name=last_name,
-                    date_of_birth=datetime.now().date(),  # Default to today, should be provided in real app
-                    email=obj_in.email,
-                    phone="",  # Should be provided in real app
-                    address="",  # Should be provided in real app
-                )
+            patient = Patient(
+                first_name=obj_in.full_name.split()[0],
+                last_name=" ".join(obj_in.full_name.split()[1:]) if len(obj_in.full_name.split()) > 1 else "",
+                date_of_birth=datetime.now().date(),
+                email=obj_in.email,
+                phone="",
+                address="",
+                insurance_info={}
             )
-            db_obj.patient_id = patient.id
+            self.db.add(patient)
+            self.db.flush()  # Get the patient ID without committing
+            
+            # Create user with patient_id
+            db_obj = User(
+                username=obj_in.username,
+                email=obj_in.email,
+                full_name=obj_in.full_name,
+                password_hash=get_password_hash(obj_in.password),
+                role=obj_in.role,
+                is_active=True,
+                patient_id=patient.id
+            )
+            
         elif obj_in.role == "doctor":
-            doctor_service = DoctorService(self.db)
-            doctor = doctor_service.create(
-                DoctorCreate(
-                    first_name=first_name,
-                    last_name=last_name,
-                    specialization="General",  # Should be provided in real app
-                    email=obj_in.email,
-                    phone="",  # Should be provided in real app
-                    license_number="TBD",  # Should be provided in real app
-                )
+            doctor = Doctor(
+                first_name=obj_in.full_name.split()[0],
+                last_name=" ".join(obj_in.full_name.split()[1:]) if len(obj_in.full_name.split()) > 1 else "",
+                specialization="General",
+                email=obj_in.email,
+                phone="",
+                license_number="TBD"
             )
-            db_obj.doctor_id = doctor.id
+            self.db.add(doctor)
+            self.db.flush()  # Get the doctor ID without committing
+            
+            # Create user with doctor_id
+            db_obj = User(
+                username=obj_in.username,
+                email=obj_in.email,
+                full_name=obj_in.full_name,
+                password_hash=get_password_hash(obj_in.password),
+                role=obj_in.role,
+                is_active=True,
+                doctor_id=doctor.id
+            )
+            
         elif obj_in.role == "staff":
+            # Create user first for staff
+            db_obj = User(
+                username=obj_in.username,
+                email=obj_in.email,
+                full_name=obj_in.full_name,
+                password_hash=get_password_hash(obj_in.password),
+                role=obj_in.role,
+                is_active=True
+            )
+            self.db.add(db_obj)
+            self.db.flush()  # Get the user ID without committing
+            
+            # Create staff profile
             staff = Staff(
                 user_id=db_obj.id,
-                department="General",  # Should be provided in real app
-                position="Staff",  # Should be provided in real app
+                department="General",
+                position="Staff",
                 status="unverified"
             )
             self.db.add(staff)
+            
+        else:
+            raise ValueError(f"Invalid role: {obj_in.role}")
 
+        self.db.add(db_obj)
         self.db.commit()
         self.db.refresh(db_obj)
         return db_obj

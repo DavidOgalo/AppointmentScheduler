@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db.repositories.base import BaseRepository
 from app.db.models.user import User
+from app.core.security import verify_password
 from app.schemas.user import UserCreate, UserUpdate
 
 class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
@@ -20,7 +21,6 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
             return None
         if not user.is_active:
             return None
-        from app.core.security.security import verify_password
         if not verify_password(password, user.password_hash):
             return None
         return user

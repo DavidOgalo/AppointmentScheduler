@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
+from app.core.security import get_current_user
 from app.db.session import get_db
-from app.schemas.appointment import AppointmentCreate, AppointmentInDB, AppointmentUpdate
-from app.services.appointment_service import AppointmentService
-from app.core.security.security import get_current_user
 from app.db.models.user import User
+from app.schemas.appointment import AppointmentCreate, AppointmentInDB, AppointmentUpdate, AppointmentResponse
+from app.services.appointment_service import AppointmentService
 from typing import Any, List
 from uuid import UUID
 
