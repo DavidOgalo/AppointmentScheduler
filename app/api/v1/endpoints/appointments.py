@@ -1,124 +1,119 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from app.core.security import get_current_user
+from datetime import datetime
 from app.db.session import get_db
-from app.db.models.user import User
-from app.schemas.appointment import AppointmentCreate, AppointmentInDB, AppointmentUpdate, AppointmentResponse
+from app.schemas.appointment import (
+    AppointmentCreate,
+    AppointmentUpdate,
+    AppointmentResponse,
+    AppointmentListResponse
+)
 from app.services.appointment_service import AppointmentService
-from typing import Any, List
-from uuid import UUID
+from app.core.auth import get_current_user
+from app.schemas.user import User
 
 router = APIRouter()
 
-@router.post("/", response_model=AppointmentInDB)
+@router.post("/", response_model=List[AppointmentResponse])
 def create_appointment(
-    *,
+    appointment: AppointmentCreate,
     db: Session = Depends(get_db),
-    appointment_in: AppointmentCreate,
     current_user: User = Depends(get_current_user)
-) -> Any:
-    """
-    Create a new appointment.
-    """
-    appointment_service = AppointmentService(db)
-    appointment = appointment_service.create(obj_in=appointment_in, user=current_user)
-    return appointment
+):
+    """Create a new appointment"""
+    service = AppointmentService(db)
+    try:
+        return service.create(appointment)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/", response_model=List[AppointmentInDB])
-def get_appointments(
-    *,
-    db: Session = Depends(get_db),
-    doctor_id: UUID,
-    current_user: User = Depends(get_current_user)
-) -> Any:
-    """
-    Get all appointments for a specific doctor.
-    """
-    if current_user.role != "doctor":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only doctors can view their appointments"
-        )
-    
-    appointment_service = AppointmentService(db)
-    appointments = appointment_service.get_appointments_by_doctor(doctor_id=doctor_id)
-    return appointments
-
-@router.get("/{appointment_id}", response_model=AppointmentInDB)
+@router.get("/{id}", response_model=AppointmentResponse)
 def get_appointment(
-    *,
+    id: str,
     db: Session = Depends(get_db),
-    appointment_id: UUID,
     current_user: User = Depends(get_current_user)
-) -> Any:
-    """
-    Get a specific appointment by ID.
-    """
-    appointment_service = AppointmentService(db)
-    appointment = appointment_service.get_appointment_by_id(appointment_id=appointment_id)
+):
+    """Get an appointment by ID"""
+    service = AppointmentService(db)
+    appointment = service.get(id)
     if not appointment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Appointment not found"
-        )
+        raise HTTPException(status_code=404, detail="Appointment not found")
     return appointment
 
-@router.put("/{appointment_id}/status", response_model=AppointmentInDB)
-def update_appointment_status(
-    *,
+@router.get("/doctor/{doctor_id}", response_model=AppointmentListResponse)
+def get_doctor_appointments(
+    doctor_id: str,
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
     db: Session = Depends(get_db),
-    appointment_id: UUID,
-    status_update: str = Body(..., description="New status for the appointment"),
     current_user: User = Depends(get_current_user)
-) -> Any:
-    """
-    Update the status of a specific appointment.
-    """
-    appointment_service = AppointmentService(db)
-    appointment = appointment_service.update_appointment_status(appointment_id=appointment_id, status=status_update, user=current_user)
-    if not appointment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Appointment not found"
-        )
-    return appointment
+):
+    """Get all appointments for a doctor"""
+    service = AppointmentService(db)
+    try:
+        appointments = service.get_by_doctor(doctor_id, start_date, end_date)
+        return {"items": appointments, "total": len(appointments)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/doctor/{doctor_id}/schedule", response_model=List[AppointmentInDB])
-def get_doctor_schedule(
-    *,
-    db: Session = Depends(get_db),
-    doctor_id: UUID,
-    current_user: User = Depends(get_current_user)
-) -> Any:
-    """
-    Get the schedule for a specific doctor.
-    """
-    if current_user.role != "doctor":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only doctors can view their schedule"
-        )
-    
-    appointment_service = AppointmentService(db)
-    appointments = appointment_service.get_appointments_by_doctor(doctor_id=doctor_id)
-    return appointments
-
-@router.get("/patient/{patient_id}", response_model=List[AppointmentInDB])
+@router.get("/patient/{patient_id}", response_model=AppointmentListResponse)
 def get_patient_appointments(
-    *,
+    patient_id: str,
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
     db: Session = Depends(get_db),
-    patient_id: UUID,
     current_user: User = Depends(get_current_user)
-) -> Any:
-    """
-    Get all appointments for a specific patient.
-    """
-    if current_user.role != "patient":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only patients can view their appointments"
-        )
-    
-    appointment_service = AppointmentService(db)
-    appointments = appointment_service.get_appointments_by_patient(patient_id=patient_id)
-    return appointments
+):
+    """Get all appointments for a patient"""
+    service = AppointmentService(db)
+    try:
+        appointments = service.get_by_patient(patient_id, start_date, end_date)
+        return {"items": appointments, "total": len(appointments)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.put("/{id}", response_model=AppointmentResponse)
+def update_appointment(
+    id: str,
+    appointment: AppointmentUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update an appointment"""
+    service = AppointmentService(db)
+    try:
+        return service.update(id, appointment)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/{id}")
+def delete_appointment(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an appointment"""
+    service = AppointmentService(db)
+    try:
+        success = service.delete(id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+        return {"message": "Appointment deleted successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/availability/{doctor_id}")
+def check_availability(
+    doctor_id: str,
+    start_time: datetime = Query(...),
+    end_time: datetime = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Check if a doctor is available at a specific time"""
+    service = AppointmentService(db)
+    try:
+        return service.check_availability(doctor_id, start_time, end_time)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
