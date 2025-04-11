@@ -1,4 +1,205 @@
 ### System Design Diagrams
 For my documentation diagrams and system designs, I used Mermaid which is a JavaScript based diagramming and charting tool that uses Markdown-inspired text definitions and a renderer to create and modify complex diagrams. Mermaid enables users to create easily modifiable diagrams, it can also be made part of production scripts. Refer to mermaid documentation for more information https://mermaid.js.org/intro/
 
-### Design Decisions
+erd Diagram 
+erDiagram
+    PATIENT {
+        uuid id PK
+        string first_name
+        string last_name
+        date date_of_birth
+        string email
+        string phone
+        string address
+        jsonb insurance_info
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    DOCTOR {
+        uuid id PK
+        string first_name
+        string last_name
+        string specialization
+        string email
+        string phone
+        string license_number
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    APPOINTMENT {
+        uuid id PK
+        uuid patient_id FK
+        uuid doctor_id FK
+        timestamp start_time
+        timestamp end_time
+        string status
+        string reason
+        text notes
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    DOCTOR_SCHEDULE {
+        uuid id PK
+        uuid doctor_id FK
+        int day_of_week
+        time start_time
+        time end_time
+        boolean is_available
+    }
+    
+    MEDICAL_RECORD {
+        uuid id PK
+        uuid patient_id FK
+        uuid appointment_id FK
+        text diagnosis
+        text prescription
+        text notes
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    USER_AUTH {
+        uuid id PK
+        string username
+        string password_hash
+        string role
+        uuid patient_id FK
+        uuid doctor_id FK
+        boolean is_active
+        timestamp last_login
+    }
+    
+    NOTIFICATION {
+        uuid id PK
+        uuid user_id FK
+        string type
+        string content
+        boolean is_read
+        timestamp created_at
+    }
+    
+    AUDIT_LOG {
+        uuid id PK
+        uuid user_id FK
+        string action
+        string resource_type
+        uuid resource_id
+        jsonb details
+        timestamp created_at
+    }
+    
+    PATIENT ||--o{ APPOINTMENT : has
+    DOCTOR ||--o{ APPOINTMENT : conducts
+    DOCTOR ||--o{ DOCTOR_SCHEDULE : maintains
+    PATIENT ||--o{ MEDICAL_RECORD : owns
+    APPOINTMENT ||--o{ MEDICAL_RECORD : references
+    USER_AUTH ||--o| PATIENT : authenticates
+    USER_AUTH ||--o| DOCTOR : authenticates
+    USER_AUTH ||--o{ NOTIFICATION : receives
+    USER_AUTH ||--o{ AUDIT_LOG : generates
+
+
+    Sequence Diagram 
+    erDiagram
+    PATIENT {
+        uuid id PK
+        string first_name
+        string last_name
+        date date_of_birth
+        string email
+        string phone
+        string address
+        jsonb insurance_info
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    DOCTOR {
+        uuid id PK
+        string first_name
+        string last_name
+        string specialization
+        string email
+        string phone
+        string license_number
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    APPOINTMENT {
+        uuid id PK
+        uuid patient_id FK
+        uuid doctor_id FK
+        timestamp start_time
+        timestamp end_time
+        string status
+        string reason
+        text notes
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    DOCTOR_SCHEDULE {
+        uuid id PK
+        uuid doctor_id FK
+        int day_of_week
+        time start_time
+        time end_time
+        boolean is_available
+    }
+    
+    MEDICAL_RECORD {
+        uuid id PK
+        uuid patient_id FK
+        uuid appointment_id FK
+        text diagnosis
+        text prescription
+        text notes
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    USER_AUTH {
+        uuid id PK
+        string username
+        string password_hash
+        string role
+        uuid patient_id FK
+        uuid doctor_id FK
+        boolean is_active
+        timestamp last_login
+    }
+    
+    NOTIFICATION {
+        uuid id PK
+        uuid user_id FK
+        string type
+        string content
+        boolean is_read
+        timestamp created_at
+    }
+    
+    AUDIT_LOG {
+        uuid id PK
+        uuid user_id FK
+        string action
+        string resource_type
+        uuid resource_id
+        jsonb details
+        timestamp created_at
+    }
+    
+    PATIENT ||--o{ APPOINTMENT : has
+    DOCTOR ||--o{ APPOINTMENT : conducts
+    DOCTOR ||--o{ DOCTOR_SCHEDULE : maintains
+    PATIENT ||--o{ MEDICAL_RECORD : owns
+    APPOINTMENT ||--o{ MEDICAL_RECORD : references
+    USER_AUTH ||--o| PATIENT : authenticates
+    USER_AUTH ||--o| DOCTOR : authenticates
+    USER_AUTH ||--o{ NOTIFICATION : receives
+    USER_AUTH ||--o{ AUDIT_LOG : generates

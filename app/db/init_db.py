@@ -1,33 +1,56 @@
-from sqlalchemy.orm import Session
-from app.core.config import settings
-from app.db.session import engine
-from app.db.base import Base
-from app.db.models import User, Patient, Doctor, Staff, Appointment, MedicalRecord, DoctorSchedule
+"""
+This file is kept for reference only.
+The actual database schema is defined in docs/database_schema.sql
+"""
 
-def init_db(db: Session) -> None:
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
-    
+import os
+import sys
+from pathlib import Path
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from app.db.session import engine
+
+def recreate_database_schema():
+    """
+    Recreates the database schema by executing the SQL commands from database_schema.sql.
+    This script should be run separately from the main application.
+    """
     try:
-        # Check if admin user exists
-        admin = db.query(User).filter(User.email == "admin@example.com").first()
-        if not admin:
-            # Create admin user
-            from app.core.security import get_password_hash
-            admin_user = User(
-                email="admin@example.com",
-                username="admin",
-                full_name="System Administrator",
-                password_hash=get_password_hash("Admin@123"),
-                role="admin",
-                is_active=True
-            )
-            db.add(admin_user)
-            db.commit()
-            print("Admin user created successfully")
+        # Get the path to the database schema file
+        schema_file = Path(__file__).parent.parent / "docs" / "database_schema.sql"
+        
+        if not schema_file.exists():
+            print(f"Error: Schema file not found at {schema_file}")
+            sys.exit(1)
+            
+        # Read the SQL commands
+        with open(schema_file, 'r') as f:
+            sql_commands = f.read()
+            
+        # Split the commands by semicolon and execute each one
+        commands = sql_commands.split(';')
+        
+        with engine.connect() as connection:
+            for command in commands:
+                # Skip empty commands
+                if not command.strip():
+                    continue
+                    
+                try:
+                    connection.execute(text(command))
+                    connection.commit()
+                    print(f"Executed: {command[:100]}...")  
+                except SQLAlchemyError as e:
+                    print(f"Error executing command: {str(e)}")
+                    print(f"Command: {command[:100]}...")
+                    connection.rollback()
+                    
+        print("Database schema recreated successfully!")
+        
     except Exception as e:
-        print(f"Error initializing database: {e}")
-        db.rollback()
+        print(f"Error recreating database schema: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    init_db() 
+    print("Recreating database schema...")
+    recreate_database_schema() 

@@ -1,0 +1,34 @@
+sequenceDiagram
+    participant P as Patient
+    participant API as API Gateway
+    participant AS as Appointment Service
+    participant DS as Doctor Service
+    participant DB as Database
+    participant MQ as Message Queue
+    participant NS as Notification Service
+
+    P->>API: Request Available Slots
+    API->>DS: Get Doctor Availability
+    DS->>DB: Query Doctor Schedule
+    DB-->>DS: Available Time Slots
+    DS-->>API: Available Slots
+    API-->>P: Display Available Times
+    
+    P->>API: Book Appointment
+    API->>AS: Create Appointment
+    AS->>DB: Check Conflicts
+    DB-->>AS: Conflict Status
+    
+    alt No Conflicts
+        AS->>DB: Save Appointment
+        DB-->>AS: Confirmation
+        AS->>MQ: Publish Appointment Event
+        AS-->>API: Success Response
+        API-->>P: Confirmation
+        MQ->>NS: Process Notification
+        NS->>NS: Generate Notifications
+        NS-->>P: Send Confirmation
+    else Conflict Exists
+        AS-->>API: Conflict Error
+        API-->>P: Error Message
+    end
