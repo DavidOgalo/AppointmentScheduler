@@ -234,11 +234,11 @@ The API documentation is available at `/docs` when running the application. It p
 - Example requests and responses
 
 ### System Documentation
-Comprehensive system documentation is available in the `docs` directory:
-- [System Architecture](docs/FINAL_DOCUMENTATION.md)
-- [Database Schema](docs/database_schema.sql)
-- [API Endpoints](docs/api_endpoints.md)
-- [Deployment Guide](docs/deployment.md)
+Comprehensive system documentation is available in the `docs` directory, it covers:
+- System Architecture
+- Database Schema
+- API Endpoints
+- Deployment Guide
 
 ## Contributing
 

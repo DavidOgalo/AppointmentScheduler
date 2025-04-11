@@ -25,6 +25,27 @@ class Settings(BaseSettings):
     # CORS Origins
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"]
     
+    # RabbitMQ
+    RABBITMQ_HOST: str = "localhost"
+    RABBITMQ_PORT: int = 5672
+    RABBITMQ_USER: str = "guest"
+    RABBITMQ_PASSWORD: str = "guest"
+    RABBITMQ_VHOST: str = "/"
+    
+    # Email
+    SMTP_TLS: bool = True
+    SMTP_PORT: Optional[int] = None
+    SMTP_HOST: Optional[str] = None
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    EMAILS_FROM_EMAIL: Optional[str] = None
+    EMAILS_FROM_NAME: Optional[str] = None
+    
+    # Redis
+    REDIS_HOST: Optional[str] = None
+    REDIS_PORT: Optional[int] = None
+    REDIS_PASSWORD: Optional[str] = None
+    
     @field_validator("BACKEND_CORS_ORIGINS")
     def validate_cors_origins(cls, v: List[str]) -> List[str]:
         return v
@@ -48,6 +69,18 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="allow"
     )
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.DATABASE_URL:
+            self.DATABASE_URL = PostgresDsn.build(
+                scheme="postgresql",
+                username=self.POSTGRES_USER,
+                password=self.POSTGRES_PASSWORD,
+                host=self.POSTGRES_HOST,
+                port=self.POSTGRES_PORT,
+                path=f"/{self.POSTGRES_DB or ''}",
+            )
 
 @lru_cache()
 def get_settings() -> Settings:
