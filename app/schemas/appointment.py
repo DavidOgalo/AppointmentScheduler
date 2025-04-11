@@ -1,87 +1,156 @@
-from datetime import datetime
+from datetime import datetime, date, time
 from typing import Optional, List
 from pydantic import BaseModel, Field, validator
+from uuid import UUID
 import uuid
 
 class AppointmentBase(BaseModel):
-    start_time: datetime
-    end_time: datetime
+    doctor_id: UUID
+    patient_id: UUID
+    appointment_date: date
+    start_time: str = Field(..., pattern=r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$')
+    end_time: str = Field(..., pattern=r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$')
     reason: str
     notes: Optional[str] = None
     is_recurring: bool = False
-    recurrence_pattern: Optional[str] = None  # daily, weekly, monthly
-    recurrence_end_date: Optional[datetime] = None
-
-    @validator('end_time')
-    def validate_time_range(cls, v, values):
-        if 'start_time' in values and v <= values['start_time']:
-            raise ValueError('end_time must be after start_time')
-        return v
+    recurrence_pattern: Optional[str] = None
+    recurrence_end_date: Optional[date] = None
 
     @validator('recurrence_pattern')
-    def validate_recurrence_pattern(cls, v, values):
-        if values.get('is_recurring') and v not in ['daily', 'weekly', 'monthly']:
-            raise ValueError('recurrence_pattern must be one of: daily, weekly, monthly')
+    def validate_recurrence_pattern(cls, v):
+        if v is not None and v not in ['daily', 'weekly', 'monthly']:
+            raise ValueError('Recurrence pattern must be daily, weekly, or monthly')
         return v
 
     @validator('recurrence_end_date')
     def validate_recurrence_end_date(cls, v, values):
         if values.get('is_recurring') and not v:
-            raise ValueError('recurrence_end_date is required for recurring appointments')
-        if v and 'start_time' in values and v <= values['start_time']:
-            raise ValueError('recurrence_end_date must be after start_time')
+            raise ValueError('Recurrence end date is required for recurring appointments')
         return v
 
-class AppointmentCreate(AppointmentBase):
-    patient_id: str
-    doctor_id: str
+class AppointmentCreate(BaseModel):
+    doctor_id: str = Field(..., description="ID of the doctor (UUID format)")
+    patient_id: str = Field(..., description="ID of the patient (UUID format)")
+    start_time: str = Field(..., description="Start time: either time only (HH:MM) or full datetime (YYYY-MM-DDTHH:MM:SS)")
+    end_time: str = Field(..., description="End time: either time only (HH:MM) or full datetime (YYYY-MM-DDTHH:MM:SS)")
+    reason: str = Field("General appointment", description="Reason for the appointment")
+    notes: Optional[str] = Field(None, description="Additional notes")
+    status: Optional[str] = Field("scheduled", description="Appointment status")
 
-    @validator('patient_id', 'doctor_id')
-    def validate_uuids(cls, v):
+    @validator('doctor_id', 'patient_id')
+    def validate_uuid(cls, v):
         try:
-            uuid.UUID(v)
+            uuid.UUID(str(v))
             return v
         except ValueError:
-            raise ValueError('Invalid UUID format')
+            raise ValueError("Invalid UUID format")
 
-class AppointmentUpdate(BaseModel):
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
-    status: Optional[str] = None
-    reason: Optional[str] = None
-    notes: Optional[str] = None
-    is_recurring: Optional[bool] = None
-    recurrence_pattern: Optional[str] = None
-    recurrence_end_date: Optional[datetime] = None
+    @validator('start_time', 'end_time')
+    def validate_datetime(cls, v):
+        if not v:
+            raise ValueError("Time cannot be empty")
+            
+        try:
+            # Try parsing as full datetime
+            datetime.fromisoformat(v)
+            return v
+        except ValueError:
+            try:
+                # Try parsing as time only (HH:MM or HH:MM:SS)
+                if len(v.split(':')) >= 2:
+                    parts = v.split(':')
+                    if len(parts) == 2:
+                        v = f"{v}:00"  # Add seconds if not provided
+                    time.fromisoformat(v)
+                    return v
+                raise ValueError("Invalid time format")
+            except ValueError:
+                raise ValueError("Invalid time format. Use either time format (HH:MM) or ISO datetime (YYYY-MM-DDTHH:MM:SS)")
 
     @validator('status')
     def validate_status(cls, v):
-        if v and v not in ['scheduled', 'confirmed', 'completed', 'cancelled']:
-            raise ValueError('status must be one of: scheduled, confirmed, completed, cancelled')
+        if v not in ['scheduled', 'confirmed', 'completed', 'cancelled']:
+            raise ValueError("Status must be 'scheduled', 'confirmed', 'completed', or 'cancelled'")
         return v
 
-    @validator('end_time')
-    def validate_time_range(cls, v, values):
-        if v and 'start_time' in values and values['start_time'] and v <= values['start_time']:
-            raise ValueError('end_time must be after start_time')
+class AppointmentUpdate(BaseModel):
+    start_time: Optional[str] = Field(None, description="Start time in ISO format (YYYY-MM-DDTHH:MM:SS)")
+    end_time: Optional[str] = Field(None, description="End time in ISO format (YYYY-MM-DDTHH:MM:SS)")
+    reason: Optional[str] = Field(None, description="Reason for the appointment")
+    notes: Optional[str] = Field(None, description="Additional notes")
+    status: Optional[str] = Field(None, description="Appointment status (scheduled, completed, cancelled, no_show)")
+    is_recurring: Optional[bool] = Field(None, description="Whether the appointment is recurring")
+    recurrence_pattern: Optional[str] = Field(None, description="Pattern of recurrence (daily, weekly, monthly)")
+    recurrence_end_date: Optional[str] = Field(None, description="End date for recurring appointments in ISO format")
+
+    @validator('start_time', 'end_time')
+    def validate_datetime(cls, v):
+        if v is not None:
+            try:
+                datetime.fromisoformat(v)
+                return v
+            except ValueError:
+                raise ValueError("Invalid datetime format. Use ISO format (YYYY-MM-DDTHH:MM:SS)")
         return v
 
-class AppointmentInDB(AppointmentBase):
-    id: str
-    patient_id: str
-    doctor_id: str
+    @validator('status')
+    def validate_status(cls, v):
+        if v is not None and v not in ['scheduled', 'completed', 'cancelled', 'no_show']:
+            raise ValueError("Status must be 'scheduled', 'completed', 'cancelled', or 'no_show'")
+        return v
+
+    @validator('recurrence_pattern')
+    def validate_recurrence_pattern(cls, v):
+        if v is not None and v not in ['daily', 'weekly', 'monthly']:
+            raise ValueError("Recurrence pattern must be 'daily', 'weekly', or 'monthly'")
+        return v
+
+    @validator('recurrence_end_date')
+    def validate_recurrence_end_date(cls, v, values):
+        if v is not None:
+            try:
+                end_date = datetime.fromisoformat(v)
+                start_time = datetime.fromisoformat(values.get('start_time', ''))
+                if end_date <= start_time:
+                    raise ValueError("Recurrence end date must be after start time")
+                return v
+            except ValueError:
+                raise ValueError("Invalid datetime format. Use ISO format (YYYY-MM-DDTHH:MM:SS)")
+        return v
+
+class AppointmentInDB(BaseModel):
+    id: UUID
+    doctor_id: UUID
+    patient_id: UUID
+    start_time: datetime
+    end_time: datetime
     status: str
+    reason: str
+    notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
-        json_encoders = {
-            uuid.UUID: lambda v: str(v)
-        }
 
-class AppointmentResponse(AppointmentInDB):
-    pass
+class AppointmentResponse(BaseModel):
+    id: str
+    doctor_id: str
+    patient_id: str
+    start_time: str
+    end_time: str
+    status: str
+    reason: str
+    notes: Optional[str] = None
+    created_at: str
+    updated_at: str
+    
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            UUID: lambda v: str(v),
+            datetime: lambda v: v.isoformat()
+        }
 
 class AppointmentListResponse(BaseModel):
     items: List[AppointmentResponse]

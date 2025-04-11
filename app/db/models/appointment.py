@@ -1,37 +1,36 @@
-from sqlalchemy import Column, ForeignKey, String, DateTime, Enum, Text, Boolean
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
 from datetime import datetime
+from uuid import uuid4
+
+from sqlalchemy import Column, ForeignKey, String, Text, Boolean, DateTime, CheckConstraint, text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
 from app.db.base_class import Base
+
 
 class Appointment(Base):
     __tablename__ = "appointments"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    patient_id = Column(UUID(as_uuid=True), ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
-    doctor_id = Column(UUID(as_uuid=True), ForeignKey("doctors.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid4)
+    doctor_id = Column(UUID, ForeignKey("doctors.id", ondelete="CASCADE"), nullable=False)
+    patient_id = Column(UUID, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
     start_time = Column(DateTime(timezone=True), nullable=False)
     end_time = Column(DateTime(timezone=True), nullable=False)
-    status = Column(String(20), nullable=False, default="scheduled")  # scheduled, confirmed, completed, cancelled
+    status = Column(String(20), nullable=False, default="scheduled")
     reason = Column(Text, nullable=False)
     notes = Column(Text)
-    is_recurring = Column(Boolean, default=False)
-    recurrence_pattern = Column(String(50))  # daily, weekly, monthly
-    recurrence_end_date = Column(DateTime(timezone=True))
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=text("now()"))
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=text("now()"), onupdate=text("now()"))
 
     # Relationships
-    patient = relationship("Patient", back_populates="appointments")
     doctor = relationship("Doctor", back_populates="appointments")
+    patient = relationship("Patient", back_populates="appointments")
     medical_records = relationship("MedicalRecord", back_populates="appointment", cascade="all, delete-orphan")
 
+    # Add check constraints using proper SQLAlchemy syntax
     __table_args__ = (
-        # Ensure end_time is after start_time
-        "CHECK (end_time > start_time)",
-        # Ensure status is one of the allowed values
-        "CHECK (status IN ('scheduled', 'confirmed', 'completed', 'cancelled'))",
+        CheckConstraint("end_time > start_time", name="check_end_time_after_start_time"),
+        CheckConstraint("status IN ('scheduled', 'confirmed', 'completed', 'cancelled')", name="check_valid_status"),
     )
 
     def __repr__(self):

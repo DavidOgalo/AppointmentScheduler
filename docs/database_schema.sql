@@ -25,11 +25,11 @@ CREATE TABLE users (
 
 -- Create the staff table
 CREATE TABLE staff (
-    id UUID PRIMARY KEY,
-    user_id UUID NOT NULL UNIQUE REFERENCES users(id),
-    department VARCHAR NOT NULL,
-    position VARCHAR NOT NULL,
-    status VARCHAR NOT NULL DEFAULT 'unverified',
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    department VARCHAR(100) NOT NULL,
+    position VARCHAR(100) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'unverified',
     hire_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -79,16 +79,20 @@ CREATE TABLE doctor_schedules (
 -- Create the appointments table
 CREATE TABLE appointments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
     doctor_id UUID NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,
+    patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
     start_time TIMESTAMP WITH TIME ZONE NOT NULL,
     end_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    status VARCHAR(20) NOT NULL CHECK (status IN ('scheduled', 'confirmed', 'completed', 'cancelled')),
+    status VARCHAR(20) NOT NULL DEFAULT 'scheduled',
     reason TEXT NOT NULL,
     notes TEXT,
+    is_recurring BOOLEAN DEFAULT FALSE,
+    recurrence_pattern VARCHAR(20),
+    recurrence_end_date TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT valid_time_range CHECK (start_time < end_time)
+    CONSTRAINT check_end_time_after_start_time CHECK (end_time > start_time),
+    CONSTRAINT check_valid_status CHECK (status IN ('scheduled', 'confirmed', 'completed', 'cancelled'))
 );
 
 -- Create the medical_records table
@@ -96,6 +100,7 @@ CREATE TABLE medical_records (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
     appointment_id UUID REFERENCES appointments(id) ON DELETE SET NULL,
+    doctor_id UUID NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,
     diagnosis TEXT,
     prescription TEXT,
     notes TEXT,
@@ -134,6 +139,8 @@ CREATE INDEX idx_appointments_doctor_id ON appointments(doctor_id);
 CREATE INDEX idx_appointments_start_time ON appointments(start_time);
 CREATE INDEX idx_appointments_status ON appointments(status);
 CREATE INDEX idx_medical_records_patient_id ON medical_records(patient_id);
+CREATE INDEX idx_medical_records_appointment_id ON medical_records(appointment_id);
+CREATE INDEX idx_medical_records_doctor_id ON medical_records(doctor_id);
 CREATE INDEX idx_audit_logs_resource_type_id ON audit_logs(resource_type, resource_id);
 CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX idx_notifications_user_id ON notifications(user_id);
