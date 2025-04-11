@@ -130,6 +130,19 @@ CREATE TABLE audit_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create the doctor_patient_assignments table
+CREATE TABLE doctor_patient_assignments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    doctor_id UUID NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,
+    patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    assigned_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    is_active BOOLEAN DEFAULT TRUE,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE (doctor_id, patient_id)
+);
+
 -- Create indexes for performance
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_patients_email ON patients(email);
@@ -145,6 +158,9 @@ CREATE INDEX idx_audit_logs_resource_type_id ON audit_logs(resource_type, resour
 CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX idx_notifications_is_read ON notifications(is_read);
+CREATE INDEX idx_doctor_patient_assignments_doctor_id ON doctor_patient_assignments(doctor_id);
+CREATE INDEX idx_doctor_patient_assignments_patient_id ON doctor_patient_assignments(patient_id);
+CREATE INDEX idx_doctor_patient_assignments_is_active ON doctor_patient_assignments(is_active);
 
 -- Create views for common queries
 CREATE VIEW upcoming_appointments AS
@@ -230,5 +246,11 @@ EXECUTE FUNCTION update_modified_column();
 
 CREATE TRIGGER update_users_modtime
 BEFORE UPDATE ON users
+FOR EACH ROW
+EXECUTE FUNCTION update_modified_column();
+
+-- Add trigger for doctor_patient_assignments
+CREATE TRIGGER update_doctor_patient_assignments_modtime
+BEFORE UPDATE ON doctor_patient_assignments
 FOR EACH ROW
 EXECUTE FUNCTION update_modified_column();
