@@ -1,3 +1,9 @@
+```mermaid
+
+---
+title: Appointment Scheduling flow Sequence Diagram
+---
+
 sequenceDiagram
     participant P as Patient
     participant API as API Gateway
@@ -32,3 +38,5 @@ sequenceDiagram
         AS-->>API: Conflict Error
         API-->>P: Error Message
     end
+
+    ```

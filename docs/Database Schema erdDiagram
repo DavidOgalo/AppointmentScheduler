@@ -1,3 +1,10 @@
+
+```mermaid
+
+---
+title: Database Schema ERD Diagram
+---
+
 erDiagram
     PATIENT {
         uuid id PK
@@ -97,3 +104,5 @@ erDiagram
     USER_AUTH ||--o| DOCTOR : authenticates
     USER_AUTH ||--o{ NOTIFICATION : receives
     USER_AUTH ||--o{ AUDIT_LOG : generates
+
+```
